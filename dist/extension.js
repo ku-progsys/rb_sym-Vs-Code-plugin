@@ -8827,7 +8827,7 @@ var require_mime_types = __commonJS({
   "node_modules/mime-types/index.js"(exports2) {
     "use strict";
     var db = require_mime_db();
-    var extname2 = require("path").extname;
+    var extname = require("path").extname;
     var EXTRACT_TYPE_REGEXP = /^\s*([^;\s]*)(?:;|\s|$)/;
     var TEXT_TYPE_REGEXP = /^text\//i;
     exports2.charset = charset;
@@ -8881,7 +8881,7 @@ var require_mime_types = __commonJS({
       if (!path || typeof path !== "string") {
         return false;
       }
-      var extension2 = extname2("x." + path).toLowerCase().substr(1);
+      var extension2 = extname("x." + path).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -13318,7 +13318,6 @@ var vscode = __toESM(require("vscode"));
 var fs = __toESM(require("fs"));
 var import_form_data = __toESM(require_form_data());
 var import_node_fetch = __toESM(require_lib2());
-var Path = __toESM(require("path"));
 function ensureUriFromContext(uri) {
   if (uri) {
     return uri;
@@ -13345,13 +13344,15 @@ async function runRbSyn(filePath) {
     return;
   }
   const rubyCode = await response.text();
-  save_to_file(filePath, rubyCode);
+  console.log("Received Ruby code:", rubyCode);
+  showInSplitView(rubyCode);
 }
-function save_to_file(filePath, rubyCode) {
-  const dir = Path.dirname(filePath);
-  const base = Path.basename(filePath, Path.extname(filePath));
-  const newFilePath = Path.join(dir, base + "_synthesized.rb");
-  fs.writeFileSync(newFilePath, rubyCode);
+async function showInSplitView(rubyCode) {
+  const newFile = await vscode.workspace.openTextDocument({
+    content: rubyCode,
+    language: "ruby"
+  });
+  vscode.window.showTextDocument(newFile, vscode.ViewColumn.Beside);
 }
 function activate(context) {
   const disposable = vscode.commands.registerCommand(

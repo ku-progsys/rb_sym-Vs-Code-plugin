@@ -36,16 +36,16 @@ async function runRbSyn(filePath: string) {
   }
 
   const rubyCode = await response.text();
-
-  save_to_file(filePath, rubyCode);
+  console.log("Received Ruby code:", rubyCode);
+  showInSplitView(rubyCode);
 }
 
-function save_to_file(filePath: string, rubyCode: string) {
-  const dir = Path.dirname(filePath);
-  const base = Path.basename(filePath, Path.extname(filePath));
-  const newFilePath = Path.join(dir, base + "_synthesized.rb");
-
-  fs.writeFileSync(newFilePath, rubyCode);
+async function showInSplitView(rubyCode: string) {
+  const newFile = await vscode.workspace.openTextDocument({
+    content: rubyCode,
+    language: "ruby",
+  });
+  vscode.window.showTextDocument(newFile, vscode.ViewColumn.Beside);
 }
 
 export function activate(context: vscode.ExtensionContext) {
