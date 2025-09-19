@@ -2,10 +2,9 @@
 // VS Code extension entrypoint for "rubysyn-extension.codeGen"
 import * as vscode from "vscode";
 import * as fs from "fs";
-import * as path from "path";
 import FormData from "form-data";
 import fetch from "node-fetch";
-import { stringify } from "querystring";
+import * as Path from "path";
 
 function ensureUriFromContext(uri?: vscode.Uri): vscode.Uri | undefined {
   if (uri) {
@@ -13,11 +12,6 @@ function ensureUriFromContext(uri?: vscode.Uri): vscode.Uri | undefined {
   }
   const ed = vscode.window.activeTextEditor;
   return ed?.document?.uri;
-}
-
-function stripAnsi(input: string): string {
-  // Remove ANSI color codes
-  return input.replace(/\x1b\[[0-9;]*m/g, "").trim();
 }
 
 async function runRbSyn(filePath: string) {
@@ -34,37 +28,24 @@ async function runRbSyn(filePath: string) {
     headers: form.getHeaders(), // Important!
   });
 
-  const text = await response.text(); // raw response for debugging
-  console.log("Raw response:", text);
-
-  try {
-    const data = JSON.parse(text);
-    console.log("RbSyn output:", data);
-
-    let main_output = data["main_output"];
-    main_output = main_output.split(",");
-
-    const message =
-      main_output[0] +
-      " and" +
-      main_output[1] +
-      ": " +
-      stripAnsi(main_output[2]) +
-      ", " +
-      stripAnsi(main_output[3]) +
-      ", " +
-      stripAnsi(main_output[4]) +
-      ".";
-    const options: vscode.MessageOptions = { modal: false };
-
-    vscode.window
-      .showInformationMessage(message, options, ...["Ok"])
-      .then((item) => {
-        console.log("Main output: ", data["main_output"] + ".");
-      });
-  } catch (e) {
-    console.error("Failed to parse JSON:", e);
+  if (!response.ok) {
+    vscode.window.showErrorMessage(
+      `Server error: ${response.status} ${response.statusText}`
+    );
+    return;
   }
+
+  const rubyCode = await response.text();
+
+  save_to_file(filePath, rubyCode);
+}
+
+function save_to_file(filePath: string, rubyCode: string) {
+  const dir = Path.dirname(filePath);
+  const base = Path.basename(filePath, Path.extname(filePath));
+  const newFilePath = Path.join(dir, base + "_synthesized.rb");
+
+  fs.writeFileSync(newFilePath, rubyCode);
 }
 
 export function activate(context: vscode.ExtensionContext) {
